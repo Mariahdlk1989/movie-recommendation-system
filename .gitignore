@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Large datasets
+ml/data/*.csv
+
+# Keep small documentation/sample files if needed
+!ml/data/.gitkeep
+
+# Generated ML files
+ml/models/
+ml/artifacts/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
