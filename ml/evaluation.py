@@ -3,6 +3,7 @@ import numpy as np
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics import ndcg_score
 
 
 MOVIES_PATH = "ml/data/movies.csv"
@@ -16,6 +17,8 @@ RANDOM_STATE = 42
 
 
 def load_data():
+    """Load movies and ratings datasets."""
+
     print("Loading data...")
 
     movies = pd.read_csv(MOVIES_PATH)
@@ -28,6 +31,7 @@ def load_data():
 
 
 def prepare_movies(movies):
+    """Prepare movie features for TF-IDF."""
 
     movies = movies.copy()
 
@@ -47,6 +51,7 @@ def prepare_movies(movies):
 
 
 def build_content_model(movies):
+    """Build the TF-IDF content-based recommendation model."""
 
     print("\nBuilding TF-IDF model...")
 
@@ -68,6 +73,7 @@ def build_content_model(movies):
 
 
 def get_valid_users(ratings):
+    """Return users with at least MIN_RATINGS ratings."""
 
     user_counts = ratings.groupby("userId").size()
 
@@ -79,22 +85,27 @@ def get_valid_users(ratings):
 
 
 def train_test_split(ratings, user_id):
+    """
+    Split a user's ratings chronologically.
+
+    First 80% -> training
+    Last 20%  -> testing
+    """
 
     user_ratings = ratings[
         ratings["userId"] == user_id
     ].copy()
 
-    # Sort chronologically
     user_ratings = user_ratings.sort_values(
         "timestamp"
     )
 
-    # Last 20% for testing
     split_index = int(
         len(user_ratings) * 0.8
     )
 
     train = user_ratings.iloc[:split_index]
+
     test = user_ratings.iloc[split_index:]
 
     return train, test
@@ -105,13 +116,17 @@ def get_recommendations(
     movies,
     tfidf_matrix
 ):
+    """
+    Generate content-based recommendations
+    based on movies the user liked in the training set.
+    """
 
-    # Movies the user has already rated
+    # Movies already rated by the user
     rated_movies = set(
         train["movieId"]
     )
 
-    # Use movies rated highly by the user
+    # Consider ratings >= 4 as liked movies
     liked_movies = train[
         train["rating"] >= 4.0
     ]
@@ -119,6 +134,7 @@ def get_recommendations(
     if liked_movies.empty:
         return []
 
+    # Map movieId -> row index
     movie_id_to_index = pd.Series(
         movies.index,
         index=movies["movieId"]
@@ -136,25 +152,30 @@ def get_recommendations(
     if not liked_indices:
         return []
 
-    # Calculate similarity against liked movies
+    # Calculate similarity between liked movies
+    # and all movies
     similarity_matrix = cosine_similarity(
         tfidf_matrix[liked_indices],
         tfidf_matrix
     )
 
     # Average similarity across liked movies
-    scores = similarity_matrix.mean(axis=0)
+    scores = similarity_matrix.mean(
+        axis=0
+    )
 
     # Don't recommend movies already rated
     for movie_id in rated_movies:
 
         if movie_id in movie_id_to_index:
 
-            index = movie_id_to_index[movie_id]
+            index = movie_id_to_index[
+                movie_id
+            ]
 
             scores[index] = -1
 
-    # Top K recommendations
+    # Get Top-K movies
     top_indices = np.argsort(
         scores
     )[::-1][:TOP_K]
@@ -171,15 +192,22 @@ def precision_at_k(
     relevant,
     k
 ):
+    """
+    Calculate Precision@K.
+
+    Precision@K =
+    relevant recommended movies / K
+    """
 
     recommended = recommended[:k]
 
     if len(recommended) == 0:
         return 0.0
 
+    relevant = set(relevant)
+
     hits = len(
-        set(recommended)
-        & set(relevant)
+        set(recommended) & relevant
     )
 
     return hits / len(recommended)
@@ -190,6 +218,13 @@ def recall_at_k(
     relevant,
     k
 ):
+    """
+    Calculate Recall@K.
+
+    Recall@K =
+    relevant recommended movies /
+    total relevant movies
+    """
 
     relevant = set(relevant)
 
@@ -199,11 +234,52 @@ def recall_at_k(
     recommended = recommended[:k]
 
     hits = len(
-        set(recommended)
-        & relevant
+        set(recommended) & relevant
     )
 
     return hits / len(relevant)
+
+
+def ndcg_at_k(
+    recommended,
+    relevant,
+    k
+):
+    """
+    Calculate NDCG@K.
+
+    NDCG considers both:
+    - whether recommendations are relevant
+    - their ranking position
+    """
+
+    recommended = recommended[:k]
+
+    if len(recommended) == 0:
+        return 0.0
+
+    relevant = set(relevant)
+
+    # Binary relevance:
+    # 1 = relevant
+    # 0 = not relevant
+    relevance_scores = [
+        1 if movie_id in relevant else 0
+        for movie_id in recommended
+    ]
+
+    # Ideal ranking:
+    # Relevant movies should appear first
+    ideal_scores = sorted(
+        relevance_scores,
+        reverse=True
+    )
+
+    return ndcg_score(
+        [ideal_scores],
+        [relevance_scores],
+        k=k
+    )
 
 
 def main():
@@ -212,13 +288,31 @@ def main():
     print("MOVIE RECOMMENDATION - MODEL EVALUATION")
     print("=" * 60)
 
+    # --------------------------------------------------
+    # 1. Load data
+    # --------------------------------------------------
+
     movies, ratings = load_data()
 
-    movies = prepare_movies(movies)
+    # --------------------------------------------------
+    # 2. Prepare movie features
+    # --------------------------------------------------
+
+    movies = prepare_movies(
+        movies
+    )
+
+    # --------------------------------------------------
+    # 3. Build TF-IDF model
+    # --------------------------------------------------
 
     _, tfidf_matrix = build_content_model(
         movies
     )
+
+    # --------------------------------------------------
+    # 4. Find valid users
+    # --------------------------------------------------
 
     valid_users = get_valid_users(
         ratings
@@ -230,7 +324,10 @@ def main():
         f"{len(valid_users):,}"
     )
 
-    # Select random users
+    # --------------------------------------------------
+    # 5. Select users for evaluation
+    # --------------------------------------------------
+
     rng = np.random.default_rng(
         RANDOM_STATE
     )
@@ -249,29 +346,41 @@ def main():
         f"{len(selected_users)} users..."
     )
 
+    # --------------------------------------------------
+    # 6. Store evaluation metrics
+    # --------------------------------------------------
+
     precision_scores = []
     recall_scores = []
+    ndcg_scores = []
 
     evaluated_users = 0
+
+    # --------------------------------------------------
+    # 7. Evaluate each user
+    # --------------------------------------------------
 
     for i, user_id in enumerate(
         selected_users,
         start=1
     ):
 
+        # Train/Test split
         train, test = train_test_split(
             ratings,
             user_id
         )
 
-        # Movies rated >= 4 in test set
+        # Movies the user liked in test set
         relevant_movies = test[
             test["rating"] >= 4.0
         ]["movieId"].tolist()
 
+        # Skip users without relevant test movies
         if len(relevant_movies) == 0:
             continue
 
+        # Generate recommendations
         recommendations = get_recommendations(
             train,
             movies,
@@ -281,6 +390,7 @@ def main():
         if not recommendations:
             continue
 
+        # Calculate metrics
         precision = precision_at_k(
             recommendations,
             relevant_movies,
@@ -293,6 +403,13 @@ def main():
             TOP_K
         )
 
+        ndcg = ndcg_at_k(
+            recommendations,
+            relevant_movies,
+            TOP_K
+        )
+
+        # Store results
         precision_scores.append(
             precision
         )
@@ -301,8 +418,13 @@ def main():
             recall
         )
 
+        ndcg_scores.append(
+            ndcg
+        )
+
         evaluated_users += 1
 
+        # Progress
         if i % 50 == 0:
 
             print(
@@ -310,7 +432,10 @@ def main():
                 f"{len(selected_users)} users..."
             )
 
-    # Final results
+    # --------------------------------------------------
+    # 8. Final evaluation results
+    # --------------------------------------------------
+
     print("\n" + "=" * 60)
     print("EVALUATION RESULTS")
     print("=" * 60)
@@ -331,6 +456,14 @@ def main():
         recall_scores
     )
 
+    mean_ndcg = np.mean(
+        ndcg_scores
+    )
+
+    # --------------------------------------------------
+    # 9. Print metrics
+    # --------------------------------------------------
+
     print(
         f"Users evaluated: "
         f"{evaluated_users}"
@@ -344,6 +477,11 @@ def main():
     print(
         f"Recall@{TOP_K}: "
         f"{mean_recall:.4f}"
+    )
+
+    print(
+        f"NDCG@{TOP_K}: "
+        f"{mean_ndcg:.4f}"
     )
 
 
