@@ -1,136 +1,29 @@
-# Movie Recommendation System
+# 🎬 Movie Recommendation System
 
 A machine learning-based movie recommendation system that combines **collaborative filtering, content-based filtering, and popularity signals** to generate personalized movie recommendations.
 
-The project uses the **MovieLens dataset** and implements several recommendation models, evaluation methods, and hybrid approaches, with a final hybrid model selected based on experimental evaluation.
+The project uses the **MovieLens dataset** and implements an end-to-end recommendation pipeline using Python and Scikit-learn.
 
 ---
 
-## Project Overview
+## 📌 Project Overview
 
-The goal of this project is to build a personalized movie recommendation system capable of recommending movies that a user is likely to enjoy based on:
+The goal of this project is to build a personalized movie recommendation system capable of learning users' preferences from their previous ratings and recommending movies they are likely to enjoy.
 
-* The user's previous ratings
-* Similarity between movies
-* Patterns learned from other users
-* Movie popularity
-* A combination of these signals
+The final system combines multiple recommendation signals:
 
-The project follows an experimental machine learning workflow:
+* 🤝 Collaborative Filtering
+* 🎭 Content-Based Filtering
+* ⭐ Popularity
+* 🔀 Hybrid Recommendation
 
-1. Explore the dataset
-2. Preprocess the data
-3. Build recommendation models
-4. Experiment with different hybrid configurations
-5. Evaluate the models
-6. Compare the final model against a popularity baseline
-7. Select and document the final configuration
+The final model was evaluated against a popularity-based baseline to measure its recommendation quality.
 
 ---
 
-## Dataset
+## 🧠 Recommendation Architecture
 
-This project uses the **MovieLens Latest Dataset**.
-
-The dataset used in the final experiments contains approximately:
-
-| Dataset Component |       Size |
-| ----------------- | ---------: |
-| Movies            |     86,537 |
-| Ratings           | 33,832,162 |
-| Users             |    330,975 |
-
-The rating data contains user-movie interactions with ratings and timestamps.
-
----
-
-## Recommendation Approach
-
-The final system combines three main signals:
-
-### 1. Collaborative Filtering
-
-Collaborative filtering learns user and movie representations from the user-item rating matrix.
-
-The project uses:
-
-* Sparse User-Item Matrix
-* Truncated SVD
-* 30 latent components
-
-The user-item matrix used for training has approximately:
-
-```text
-322,397 users
-83,101 movies
-33,501,187 non-zero ratings
-```
-
-The SVD model produces:
-
-```text
-User factor matrix: (322397, 30)
-Item factor matrix: (30, 83101)
-```
-
-The collaborative score is calculated from the interaction between the user's latent representation and the movie's latent representation.
-
----
-
-### 2. Content-Based Filtering
-
-The content-based component uses movie genres to determine similarity between movies.
-
-Movie genres such as:
-
-```text
-Action|Adventure|Sci-Fi
-```
-
-are converted into textual features:
-
-```text
-Action Adventure Sci-Fi
-```
-
-TF-IDF is then applied to create movie feature vectors.
-
-The final configuration uses:
-
-```text
-TF-IDF features: 20,000
-```
-
-For each user, a content profile is constructed from movies the user rated positively.
-
-Movies with ratings of **4 or higher** are treated as liked movies when constructing the user profile.
-
----
-
-### 3. Popularity
-
-A popularity score is calculated using both:
-
-* Number of ratings
-* Average rating
-
-The final popularity score uses a logarithmic transformation of the rating count so that movies with extremely large numbers of ratings do not completely dominate the recommendation system.
-
----
-
-## Final Hybrid Model
-
-The final recommendation score combines the three components using weighted scoring.
-
-The selected configuration is:
-
-| Component               | Weight |
-| ----------------------- | -----: |
-| Collaborative Filtering |   0.90 |
-| Content-Based Filtering |   0.08 |
-| Popularity              |   0.02 |
-
-Therefore:
+The final recommendation score is calculated using a weighted hybrid approach:
 
 ```text
 Hybrid Score =
@@ -139,117 +32,99 @@ Hybrid Score =
   + 0.02 × Popularity Score
 ```
 
-The collaborative component has the largest contribution because experiments showed that user-item interaction patterns provide the strongest signal for personalization.
+### 1. Collaborative Filtering
+
+Collaborative filtering learns hidden relationships between users and movies from the rating matrix.
+
+The implementation uses:
+
+* Sparse User-Item Matrix
+* Truncated SVD
+* 30 latent components
+
+The SVD model learns latent representations for both users and movies and uses them to estimate user preferences.
+
+### 2. Content-Based Filtering
+
+The content-based component uses movie genres to identify movies that are similar to those previously liked by a user.
+
+The implementation uses:
+
+* TF-IDF Vectorization
+* Movie genres as features
+* User preference profiles
+* Cosine-style similarity through TF-IDF vectors
+
+### 3. Popularity
+
+A popularity score is calculated using both:
+
+* Number of ratings
+* Average rating
+
+This signal provides a small contribution to the final recommendation score.
+
+### 4. Hybrid Model
+
+The three signals are combined into a single score.
+
+The final configuration is:
+
+| Component               | Weight |
+| ----------------------- | -----: |
+| Collaborative Filtering |   0.90 |
+| Content-Based Filtering |   0.08 |
+| Popularity              |   0.02 |
+
+The collaborative component has the largest weight because it provided the strongest personalization signal during experimentation.
 
 ---
 
-## Recommendation Pipeline
+## 📊 Dataset
 
-The final model follows this pipeline:
+The project uses the **MovieLens Latest Dataset**.
 
-```text
-MovieLens Dataset
-        │
-        ▼
-Train / Test Split
-        │
-        ├───────────────┐
-        ▼               ▼
- User-Item Matrix     Movie Genres
-        │               │
-        ▼               ▼
-      SVD             TF-IDF
-        │               │
-        ▼               ▼
- Collaborative       Content
-    Scores            Scores
-        │               │
-        └───────┬───────┘
-                │
-                ▼
-        Popularity Score
-                │
-                ▼
-        Hybrid Scoring
-                │
-                ▼
-        Candidate Pool
-                │
-                ▼
-      Remove Watched Movies
-                │
-                ▼
-       Top-N Recommendations
-```
+Dataset statistics used in the final experiment:
+
+| Dataset |      Count |
+| ------- | ---------: |
+| Movies  |     86,537 |
+| Ratings | 33,832,162 |
+| Users   |    330,975 |
+
+The dataset contains movie metadata and millions of user ratings.
 
 ---
 
-## Candidate Generation
+## 🧪 Train/Test Strategy
 
-The recommendation system first generates a candidate pool using the collaborative filtering scores.
-
-The final configuration uses:
-
-```text
-Candidate Pool: 300
-Top-N Recommendations: 10
-```
-
-Only the strongest collaborative candidates are considered for the final hybrid ranking.
-
-Movies already rated by the user are removed before generating the final recommendations.
-
----
-
-## Train/Test Split
-
-The evaluation uses a chronological split.
+The evaluation uses a **leave-one-out temporal split**.
 
 For each user:
 
 * Ratings are sorted by timestamp.
 * The user's latest rating is placed in the test set.
-* All previous ratings are used for training.
+* Earlier ratings are used for training.
 
-This creates:
+This resulted in:
 
 ```text
-Training ratings: 33,501,187
-Test ratings:        330,975
+Users:              330,975
+Training ratings:  33,501,187
+Test ratings:         330,975
 ```
 
-This approach prevents future interactions from being used to train the model when evaluating previous recommendations.
-
----
-
-# Model Evaluation
-
-The recommendation system is evaluated using:
-
-* Precision@K
-* Recall@K
-* NDCG@K
-
-A rating of:
+For evaluation, a movie is considered relevant when:
 
 ```text
 rating >= 4
 ```
 
-is considered a relevant interaction.
-
-The final evaluation uses:
-
-```text
-Evaluation users: 500
-K values: 5, 10, 20
-```
-
 ---
 
-## Final Evaluation Results
+## 📈 Final Evaluation Results
 
-The final hybrid model was compared against a popularity-based baseline.
+The final hybrid model was evaluated on **500 users** and compared against a popularity baseline.
 
 | Model               |  K | Precision | Recall |   NDCG |
 | ------------------- | -: | --------: | -----: | -----: |
@@ -260,177 +135,24 @@ The final hybrid model was compared against a popularity-based baseline.
 | Popularity Baseline | 10 |    0.0075 | 0.0752 | 0.0335 |
 | Popularity Baseline | 20 |    0.0055 | 0.1097 | 0.0424 |
 
-The final hybrid model outperforms the popularity baseline across all evaluated K values and all three evaluation metrics.
+### 🏆 Key Result
 
-### Improvement at K=10
+The final hybrid model outperformed the popularity baseline across **Precision, Recall, and NDCG** for all evaluated values of K.
 
-Compared with the popularity baseline:
-
-* Precision improves from **0.0075 → 0.0144**
-* Recall improves from **0.0752 → 0.1442**
-* NDCG improves from **0.0335 → 0.0793**
-
-This shows that the hybrid model provides substantially better personalized ranking than simply recommending popular movies.
-
----
-
-## Example Recommendations
-
-For an example user, the final system generated recommendations such as:
-
-| Movie                      | Collaborative | Content | Popularity | Hybrid |
-| -------------------------- | ------------: | ------: | ---------: | -----: |
-| Raiders of the Lost Ark    |        0.6225 |  0.6065 |     0.8910 | 0.6266 |
-| Finding Nemo               |        0.4503 |  0.6302 |     0.7970 | 0.4717 |
-| Back to the Future         |        0.4234 |  0.5188 |     0.8518 | 0.4396 |
-| Jurassic Park              |        0.3896 |  0.5289 |     0.8079 | 0.4091 |
-| Terminator 2: Judgment Day |        0.3932 |  0.3044 |     0.8571 | 0.3954 |
-
-The system combines the different scores rather than relying only on popularity or genre similarity.
-
----
-
-# Project Structure
+For example, at **K = 10**:
 
 ```text
-movie-recommendation-system/
-│
-├── README.md
-├── requirements.txt
-├── .gitignore
-│
-└── ml/
-    │
-    ├── data/
-    │   ├── movies.csv
-    │   ├── ratings.csv
-    │   ├── movies_processed.csv
-    │   └── movies_with_stats.csv
-    │
-    ├── explore_data.py
-    ├── preprocess.py
-    ├── movie_statistics.py
-    │
-    ├── recommendation.py
-    ├── collaborative_filtering.py
-    ├── collaborative_v2.py
-    │
-    ├── hybrid_model.py
-    ├── hybrid_recommendation.py
-    ├── hybrid_v2.py
-    ├── hybrid_v3.py
-    ├── hybrid_v4.py
-    ├── hybrid_v5.py
-    ├── hybrid_v6.py
-    ├── hybrid_v7.py
-    │
-    ├── hybrid_evaluation.py
-    ├── hybrid_v2_evaluation.py
-    ├── hybrid_v3_evaluation.py
-    ├── hybrid_v4_evaluation.py
-    ├── hybrid_v5_evaluation.py
-    ├── collaborative_evaluation.py
-    ├── evaluation.py
-    │
-    ├── hybrid_final.py
-    ├── hybrid_final_evaluation.py
-    ├── final_evaluation.py
-    │
-    ├── popularity_baseline.py
-    ├── tune_hybrid.py
-    ├── tune_svd.py
-    │
-    └── hybrid_tuning_results.csv
+                    Hybrid       Baseline
+Precision@10        0.0144        0.0075
+Recall@10           0.1442        0.0752
+NDCG@10             0.0793        0.0335
 ```
+
+This demonstrates that the hybrid model provides a stronger personalized recommendation signal than simply recommending popular movies.
 
 ---
 
-# Installation
-
-Clone the repository:
-
-```bash
-git clone https://github.com/Mariahdlk1989/movie-recommendation-system.git
-```
-
-Move into the project directory:
-
-```bash
-cd movie-recommendation-system
-```
-
-Create a virtual environment:
-
-```bash
-python -m venv .venv
-```
-
-Activate it on Windows PowerShell:
-
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
-Install the dependencies:
-
-```powershell
-pip install -r requirements.txt
-```
-
----
-
-# Running the Final Recommendation Model
-
-From the project root, run:
-
-```powershell
-python ml/hybrid_final.py
-```
-
-The model will:
-
-1. Load the MovieLens dataset
-2. Create the chronological train/test split
-3. Build the sparse user-item matrix
-4. Train the SVD model
-5. Build the TF-IDF content model
-6. Calculate popularity scores
-7. Generate personalized recommendations
-8. Display the final hybrid scores
-
----
-
-# Running the Evaluation
-
-To evaluate the final model, run:
-
-```powershell
-python ml/final_evaluation.py
-```
-
-The evaluation reports:
-
-```text
-Precision@5
-Recall@5
-NDCG@5
-
-Precision@10
-Recall@10
-NDCG@10
-
-Precision@20
-Recall@20
-NDCG@20
-```
-
-The evaluation also compares the final hybrid system against the popularity baseline.
-
----
-
-# Model Configuration
-
-The final configuration is:
+## ⚙️ Final Model Configuration
 
 ```text
 Collaborative Weight: 0.90
@@ -447,114 +169,199 @@ Relevant Threshold:   rating >= 4
 
 ---
 
-# Experimental Development
+## 📁 Project Structure
 
-The project contains multiple versions of the recommendation model.
+```text
+movie-recommendation-system/
+│
+├── ml/
+│   │
+│   ├── data/
+│   │   ├── movies.csv
+│   │   ├── ratings.csv
+│   │   ├── movies_processed.csv
+│   │   └── movies_with_stats.csv
+│   │
+│   ├── hybrid_model.py
+│   ├── hybrid_recommendation.py
+│   ├── hybrid_final.py
+│   ├── final_evaluation.py
+│   ├── hybrid_final_evaluation.py
+│   │
+│   ├── collaborative_filtering.py
+│   ├── recommendation.py
+│   ├── popularity_baseline.py
+│   ├── preprocess.py
+│   ├── explore_data.py
+│   └── movie_statistics.py
+│
+├── requirements.txt
+├── README.md
+└── .gitignore
+```
 
-The development process included experiments with:
+### Model Development Files
 
-* Collaborative filtering
-* Content-based recommendation
-* Popularity-based recommendation
-* Different hybrid weight configurations
-* Different SVD configurations
-* Candidate pool sizes
-* Multiple evaluation approaches
+Several experimental versions of the hybrid model were developed during tuning and experimentation.
 
-The files with `v2`, `v3`, `v4`, `v5`, `v6`, and `v7` represent different experimental versions.
+Files such as:
 
-The `hybrid_final.py` model represents the selected final configuration used for the final evaluation.
+```text
+hybrid_v2.py
+hybrid_v3.py
+hybrid_v4.py
+hybrid_v5.py
+hybrid_v6.py
+hybrid_v7.py
+```
 
----
-
-# Limitations
-
-Although the final hybrid model performs better than the popularity baseline, several limitations remain.
-
-### Sparse User-Movie Interactions
-
-Most users have rated only a small subset of the available movies. This creates a highly sparse user-item matrix.
-
-### Limited Content Features
-
-The current content-based model primarily uses movie genres. Additional features such as:
-
-* Movie descriptions
-* Directors
-* Actors
-* Keywords
-* Release year
-
-could improve content-based recommendations.
-
-### Cold Start Problem
-
-New users with no rating history cannot receive highly personalized collaborative recommendations.
-
-Similarly, movies with no interaction history are difficult to rank using collaborative filtering.
-
-### Evaluation Size
-
-The final evaluation uses a sample of 500 users rather than the entire user population. A larger evaluation could provide a more comprehensive estimate of model performance.
+represent intermediate development stages and are not part of the final recommendation pipeline.
 
 ---
 
-# Future Improvements
+## 🚀 Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/Mariahdlk1989/movie-recommendation-system.git
+cd movie-recommendation-system
+```
+
+Create a virtual environment:
+
+```bash
+python -m venv .venv
+```
+
+Activate the virtual environment on Windows:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+Install the dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## ▶️ Running the Final Recommendation Model
+
+From the project root:
+
+```bash
+python ml/hybrid_final.py
+```
+
+The program:
+
+1. Loads the MovieLens dataset.
+2. Creates the training/test split.
+3. Builds the sparse user-item matrix.
+4. Trains the SVD collaborative model.
+5. Builds the TF-IDF content model.
+6. Calculates movie popularity.
+7. Generates personalized recommendations.
+8. Displays the final hybrid scores.
+
+Example:
+
+```text
+============================================================
+FINAL RECOMMENDATIONS
+============================================================
+
+Raiders of the Lost Ark (Indiana Jones and the Raiders
+of the Lost Ark) (1981)
+
+Finding Nemo (2003)
+
+Back to the Future (1985)
+
+Jurassic Park (1993)
+
+Terminator 2: Judgment Day (1991)
+```
+
+---
+
+## 📊 Running the Evaluation
+
+To evaluate the final model:
+
+```bash
+python ml/final_evaluation.py
+```
+
+The evaluation compares the hybrid recommendation system with a popularity baseline using:
+
+* Precision@K
+* Recall@K
+* NDCG@K
+
+The tested values of K are:
+
+```text
+K = 5
+K = 10
+K = 20
+```
+
+---
+
+## 🛠️ Technologies
+
+* **Python**
+* **NumPy**
+* **Pandas**
+* **SciPy**
+* **Scikit-learn**
+* **Truncated SVD**
+* **TF-IDF**
+* **Git / GitHub**
+
+---
+
+## 🔬 Future Improvements
 
 Possible future improvements include:
 
-* Add movie descriptions to the content model
-* Add actors and directors as features
-* Implement more advanced collaborative filtering
-* Experiment with implicit-feedback recommendation
-* Use neural recommendation models
-* Improve cold-start handling
-* Add user and movie embeddings
-* Tune the hybrid weights automatically
-* Build a FastAPI backend
-* Add a React frontend
-* Add PostgreSQL integration
-* Containerize the complete application using Docker
-* Deploy the recommendation service
+* Adding movie descriptions and tags to the content model
+* Incorporating movie metadata such as directors and actors
+* Using a more advanced collaborative filtering algorithm
+* Testing Neural Collaborative Filtering
+* Using implicit feedback
+* Improving cold-start recommendations
+* Adding a FastAPI backend
+* Adding a React frontend
+* Adding PostgreSQL for application data
+* Containerizing the application with Docker
+* Deploying the recommendation service
 
 ---
 
-# Technologies
+## 📌 Project Status
 
-The machine learning component uses:
-
-* Python
-* Pandas
-* NumPy
-* SciPy
-* Scikit-learn
-* Truncated SVD
-* TF-IDF
-* Sparse matrices
-
-The planned full-stack architecture can additionally use:
-
-* FastAPI
-* PostgreSQL
-* React
-* Docker
-
----
-
-# Project Status
-
-**Machine Learning Recommendation Engine: Completed**
+**Current status: Machine Learning recommendation engine completed.**
 
 The final hybrid recommendation model has been implemented and evaluated against a popularity baseline.
 
-The full-stack application components are planned for future development.
+Future development will focus on integrating the recommendation engine into a complete full-stack application.
 
 ---
 
-## Author
+## 👩‍💻 Author
 
 **Maria Delkash**
 
-Computer Engineering Student
+GitHub: [Mariahdlk1989](https://github.com/Mariahdlk1989)
 
-Machine Learning & Recommendation Systems Project
+---
+
+## 📄 License
+
+This project is developed for educational and research purposes.
+
