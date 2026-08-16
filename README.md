@@ -2,7 +2,7 @@
 
 A machine learning-based movie recommendation system that combines **collaborative filtering, content-based filtering, and popularity signals** to generate personalized movie recommendations.
 
-The project uses the **MovieLens dataset** and implements an end-to-end recommendation pipeline using Python and Scikit-learn.
+The project uses the **MovieLens Latest Dataset** and implements an end-to-end recommendation pipeline using Python and Scikit-learn.
 
 ---
 
@@ -10,14 +10,14 @@ The project uses the **MovieLens dataset** and implements an end-to-end recommen
 
 The goal of this project is to build a personalized movie recommendation system capable of learning users' preferences from their previous ratings and recommending movies they are likely to enjoy.
 
-The final system combines multiple recommendation signals:
+The final system combines three recommendation signals:
 
 * 🤝 Collaborative Filtering
 * 🎭 Content-Based Filtering
 * ⭐ Popularity
 * 🔀 Hybrid Recommendation
 
-The final model was evaluated against a popularity-based baseline to measure its recommendation quality.
+The final hybrid model was evaluated against a popularity-based baseline using standard recommendation-system metrics.
 
 ---
 
@@ -34,7 +34,7 @@ Hybrid Score =
 
 ### 1. Collaborative Filtering
 
-Collaborative filtering learns hidden relationships between users and movies from the rating matrix.
+The collaborative filtering component learns hidden relationships between users and movies from the user-item rating matrix.
 
 The implementation uses:
 
@@ -42,33 +42,31 @@ The implementation uses:
 * Truncated SVD
 * 30 latent components
 
-The SVD model learns latent representations for both users and movies and uses them to estimate user preferences.
+The SVD model learns latent representations of users and movies and uses these representations to estimate user preferences.
 
 ### 2. Content-Based Filtering
 
-The content-based component uses movie genres to identify movies that are similar to those previously liked by a user.
+The content-based component identifies movies with genres similar to movies that a user previously liked.
 
 The implementation uses:
 
 * TF-IDF Vectorization
 * Movie genres as features
 * User preference profiles
-* Cosine-style similarity through TF-IDF vectors
+* Cosine-style similarity using TF-IDF vectors
 
 ### 3. Popularity
 
-A popularity score is calculated using both:
+A popularity score is calculated using:
 
 * Number of ratings
 * Average rating
 
-This signal provides a small contribution to the final recommendation score.
+Popularity contributes only a small portion of the final score so that the model remains primarily personalized.
 
 ### 4. Hybrid Model
 
-The three signals are combined into a single score.
-
-The final configuration is:
+The three recommendation signals are combined into a single hybrid score.
 
 | Component               | Weight |
 | ----------------------- | -----: |
@@ -76,7 +74,7 @@ The final configuration is:
 | Content-Based Filtering |   0.08 |
 | Popularity              |   0.02 |
 
-The collaborative component has the largest weight because it provided the strongest personalization signal during experimentation.
+The collaborative component has the highest weight because it provided the strongest personalization signal during experimentation.
 
 ---
 
@@ -92,7 +90,7 @@ Dataset statistics used in the final experiment:
 | Ratings | 33,832,162 |
 | Users   |    330,975 |
 
-The dataset contains movie metadata and millions of user ratings.
+The dataset contains movie metadata and more than 33 million user ratings.
 
 ---
 
@@ -102,11 +100,11 @@ The evaluation uses a **leave-one-out temporal split**.
 
 For each user:
 
-* Ratings are sorted by timestamp.
-* The user's latest rating is placed in the test set.
-* Earlier ratings are used for training.
+1. Ratings are sorted chronologically using timestamps.
+2. The user's latest rating is placed in the test set.
+3. Earlier ratings are used as training data.
 
-This resulted in:
+The resulting split contains:
 
 ```text
 Users:              330,975
@@ -124,7 +122,7 @@ rating >= 4
 
 ## 📈 Final Evaluation Results
 
-The final hybrid model was evaluated on **500 users** and compared against a popularity baseline.
+The final hybrid model was evaluated on **500 users** and compared against a popularity-based baseline.
 
 | Model               |  K | Precision | Recall |   NDCG |
 | ------------------- | -: | --------: | -----: | -----: |
@@ -139,14 +137,13 @@ The final hybrid model was evaluated on **500 users** and compared against a pop
 
 The final hybrid model outperformed the popularity baseline across **Precision, Recall, and NDCG** for all evaluated values of K.
 
-For example, at **K = 10**:
+At **K = 10**:
 
-```text
-                    Hybrid       Baseline
-Precision@10        0.0144        0.0075
-Recall@10           0.1442        0.0752
-NDCG@10             0.0793        0.0335
-```
+| Metric       | Hybrid | Baseline |
+| ------------ | -----: | -------: |
+| Precision@10 | 0.0144 |   0.0075 |
+| Recall@10    | 0.1442 |   0.0752 |
+| NDCG@10      | 0.0793 |   0.0335 |
 
 This demonstrates that the hybrid model provides a stronger personalized recommendation signal than simply recommending popular movies.
 
@@ -163,6 +160,7 @@ SVD Components:       30
 TF-IDF Features:      20,000
 Candidate Pool:       300
 Top N:                10
+
 Evaluation Users:     500
 Relevant Threshold:   rating >= 4
 ```
@@ -182,18 +180,35 @@ movie-recommendation-system/
 │   │   ├── movies_processed.csv
 │   │   └── movies_with_stats.csv
 │   │
-│   ├── hybrid_model.py
-│   ├── hybrid_recommendation.py
 │   ├── hybrid_final.py
 │   ├── final_evaluation.py
-│   ├── hybrid_final_evaluation.py
 │   │
 │   ├── collaborative_filtering.py
+│   ├── collaborative_evaluation.py
 │   ├── recommendation.py
 │   ├── popularity_baseline.py
 │   ├── preprocess.py
 │   ├── explore_data.py
 │   └── movie_statistics.py
+│
+│   └── experiments/
+│       ├── hybrid_model.py
+│       ├── hybrid_recommendation.py
+│       ├── hybrid_evaluation.py
+│       ├── hybrid_v2.py
+│       ├── hybrid_v2_evaluation.py
+│       ├── hybrid_v3.py
+│       ├── hybrid_v3_evaluation.py
+│       ├── hybrid_v4.py
+│       ├── hybrid_v4_evaluation.py
+│       ├── hybrid_v5.py
+│       ├── hybrid_v5_evaluation.py
+│       ├── hybrid_v6.py
+│       ├── hybrid_v7.py
+│       ├── hybrid_final_evaluation.py
+│       ├── hybrid_tuning_results.csv
+│       ├── tune_hybrid.py
+│       └── tune_svd.py
 │
 ├── requirements.txt
 ├── README.md
@@ -202,20 +217,16 @@ movie-recommendation-system/
 
 ### Model Development Files
 
-Several experimental versions of the hybrid model were developed during tuning and experimentation.
+The `ml/experiments/` directory contains intermediate models and experiments developed during the tuning process.
 
-Files such as:
+These files include different versions of the hybrid recommendation model, evaluation scripts, and hyperparameter tuning experiments.
+
+The main production-oriented files are:
 
 ```text
-hybrid_v2.py
-hybrid_v3.py
-hybrid_v4.py
-hybrid_v5.py
-hybrid_v6.py
-hybrid_v7.py
+ml/hybrid_final.py
+ml/final_evaluation.py
 ```
-
-represent intermediate development stages and are not part of the final recommendation pipeline.
 
 ---
 
@@ -259,30 +270,22 @@ python ml/hybrid_final.py
 The program:
 
 1. Loads the MovieLens dataset.
-2. Creates the training/test split.
+2. Creates the temporal train/test split.
 3. Builds the sparse user-item matrix.
-4. Trains the SVD collaborative model.
+4. Trains the SVD collaborative filtering model.
 5. Builds the TF-IDF content model.
 6. Calculates movie popularity.
 7. Generates personalized recommendations.
-8. Displays the final hybrid scores.
+8. Calculates the final hybrid score.
+9. Displays the top recommendations.
 
-Example:
+Example recommendations include:
 
 ```text
-============================================================
-FINAL RECOMMENDATIONS
-============================================================
-
-Raiders of the Lost Ark (Indiana Jones and the Raiders
-of the Lost Ark) (1981)
-
+Raiders of the Lost Ark (Indiana Jones and the Raiders of the Lost Ark) (1981)
 Finding Nemo (2003)
-
 Back to the Future (1985)
-
 Jurassic Park (1993)
-
 Terminator 2: Judgment Day (1991)
 ```
 
@@ -302,7 +305,7 @@ The evaluation compares the hybrid recommendation system with a popularity basel
 * Recall@K
 * NDCG@K
 
-The tested values of K are:
+The evaluated values are:
 
 ```text
 K = 5
@@ -314,24 +317,25 @@ K = 20
 
 ## 🛠️ Technologies
 
-* **Python**
-* **NumPy**
-* **Pandas**
-* **SciPy**
-* **Scikit-learn**
-* **Truncated SVD**
-* **TF-IDF**
-* **Git / GitHub**
+* Python
+* NumPy
+* Pandas
+* SciPy
+* Scikit-learn
+* Truncated SVD
+* TF-IDF
+* Git
+* GitHub
 
 ---
 
-## 🔬 Future Improvements
+## 🔮 Future Improvements
 
 Possible future improvements include:
 
 * Adding movie descriptions and tags to the content model
-* Incorporating movie metadata such as directors and actors
-* Using a more advanced collaborative filtering algorithm
+* Incorporating directors and actors into the content model
+* Using more advanced collaborative filtering algorithms
 * Testing Neural Collaborative Filtering
 * Using implicit feedback
 * Improving cold-start recommendations
@@ -349,7 +353,7 @@ Possible future improvements include:
 
 The final hybrid recommendation model has been implemented and evaluated against a popularity baseline.
 
-Future development will focus on integrating the recommendation engine into a complete full-stack application.
+The next development stage is to integrate the recommendation engine into a complete full-stack application.
 
 ---
 
@@ -364,4 +368,3 @@ GitHub: [Mariahdlk1989](https://github.com/Mariahdlk1989)
 ## 📄 License
 
 This project is developed for educational and research purposes.
-
